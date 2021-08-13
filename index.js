@@ -1,4 +1,3 @@
-// const audioContext = require('audio-context')()
 const fetch = require('node-fetch');
 const decode = require('audio-decode');
 const buffer = require('audio-lena/mp3');
@@ -71,4 +70,23 @@ const outputData = (data, allchannels) => {
     .then(arrayBuffer => decode(arrayBuffer))
     .then(audioBuffer => normalizeData(filterData(audioBuffer, samples, allchannels)),allchannels)
     .then(callback);
+}
+
+/**
+ * Retrieves audio from URL and generates peak data
+ * @param {String} url the url of the audio we'd like to fetch
+ * @param {Object} options Optional object with samples {Number} (default: 70) and allchannels {boolean} (default: false) properties
+ */
+exports.generatePeaks = async (url, options = {}) => {
+    if (url == undefined || url.length < 6) {
+        return 'Please provide a URL';
+    }
+    let allchannels = options.allchannels ? options.allchannels : false;
+    let samples = options.samples ? options.samples : 70;
+    let peaks = await fetch(url)
+    .then(response => response.arrayBuffer())
+    .then(arrayBuffer => decode(arrayBuffer))
+    .then(audioBuffer => normalizeData(filterData(audioBuffer, samples, allchannels)),allchannels)
+    .then(peaks => {return peaks[0]});
+    return peaks;
 }
