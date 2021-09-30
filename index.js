@@ -1,9 +1,11 @@
+const fs = require("fs");
 const fetch = require('node-fetch');
+const { of, map, from, switchMap } = require('rxjs');
 const decode = require('audio-decode');
-const buffer = require('audio-lena/mp3');
+const Blob = require('buffer');
 
 /**
- * Filters the AudioBuffer retrieved from an external source
+ * Filters the AudioBuffer
  * @param {AudioBuffer} audioBuffer the AudioBuffer from drawAudio()
  * @param {Number} samples the number of samples to generate data for
  * @param {Boolean} allchannels by default, generatePeaks only returns the first channel.  set this to true to return an array for each channel
@@ -20,13 +22,13 @@ const filterData = (audioBuffer, samples, allchannels) => {
             let blockStart = blockSize * i; // the location of the first sample in the block
             let sum = 0;
             for (let j = 0; j < blockSize; j++) {
-            sum = sum + Math.abs(rawData[blockStart + j]); // find the sum of all the samples in the block
+                sum = sum + Math.abs(rawData[blockStart + j]); // find the sum of all the samples in the block
             }
             filteredData.push(sum / blockSize); // divide the sum by the block size to get the average
         }
         filteredDataChannels[currentchannel] = filteredData;
     }
-  return filteredDataChannels;
+    return filteredDataChannels;
 };
 
 /**
@@ -37,7 +39,7 @@ const filterData = (audioBuffer, samples, allchannels) => {
 const normalizeData = filteredDataChannels => {
     let multipliers = [];
     let normalized = [];
-    filteredDataChannels.map((c,i) => {
+    filteredDataChannels.map((c, i) => {
         multiplier = Math.pow(Math.max(...c), -1);
         normalized[i] = c.map(n => n * multiplier);
     });
@@ -45,48 +47,54 @@ const normalizeData = filteredDataChannels => {
 }
 
 /**
- * @param {Array} data generated peaks data 
- * @param {Boolean} allchannels by default, generatePeaks only returns the first channel.  set this to true to return an array for each channel
- * @returns {Array} generated peak data
+ * Generate audio peaks from a local filepath
+ * @param {string} audiofile Local filepath
+ * @param {samples} samples The number of "peaks" to return
+ * @returns {Array} a normalized array of peaks from the first channel of audio
  */
-const outputData = (data, allchannels) => {
-    if (allchannels) {
-        return data;
+function audioPeaksFromFile(audiofile, samples) {
+    return of(audiofile).pipe(
+        switchMap(filepath => {
+            return from(fs.promises.readFile(filepath))
+        }),
+        map(filedata => new Blob.Blob([filedata.buffer])),
+        switchMap(blob => from(blob.arrayBuffer())),
+        switchMap(arrayBuffer => from(decode(arrayBuffer))),
+        map(audioBuffer => filterData(audioBuffer, samples ?? 70, false)),
+        map(filteredData => normalizeData(filteredData, false)),
+        map(normalizedData => normalizedData[0])
+    );
+}
+
+/**
+ * Generate audio peaks from remote file URL
+ * @param {string} audiofileurl Remote file URL
+ * @param {samples} samples The number of "peaks" to return
+ * @returns {Array} a normalized array of peaks from the first channel of audio
+ */
+function audioPeaksFromURL(audiofileurl, samples) {
+    return of(audiofileurl).pipe(
+        switchMap(audiofileurl => {
+            return from(fetch(audiofileurl))
+        }),
+        switchMap(file => from(file.arrayBuffer())),
+        switchMap(arrayBuffer => from(decode(arrayBuffer))),
+        map(audioBuffer => filterData(audioBuffer, samples ?? 70, false)),
+        map(filteredData => normalizeData(filteredData, false)),
+        map(normalizedData => normalizedData[0])
+    );
+}
+
+/**
+ * Generate audio peaks from local filepath or remote file URL
+ * @param {string} audio Local filepath or remote file URL
+ * @param {samples} samples The number of "peaks" to return
+ * @returns {Array} a normalized array of peaks from the first channel of audio
+ */
+exports.getAudioPeaks = (audio, samples) => {
+    if (audio.substr(0,4)=='http') {
+        return audioPeaksFromURL(audio, samples);
     } else {
-        return data[0];
+        return audioPeaksFromFile(audio, samples);
     }
-}
-
-/**
- * Retrieves audio from URL and generates peak data
- * @param {String} url the url of the audio we'd like to fetch
- * @param {Number} samples the number of samples to generate data for
- * @param {Boolean} allchannels by default, generatePeaks only returns the first channel.  set this to true to return an array for each channel
- * @param {String} callback the function to call on the peaks data once it has been generated
- */
- exports.getPeaks = (url, samples = 70, allchannels = false, callback) => {
-    fetch(url)
-    .then(response => response.arrayBuffer())
-    .then(arrayBuffer => decode(arrayBuffer))
-    .then(audioBuffer => normalizeData(filterData(audioBuffer, samples, allchannels)),allchannels)
-    .then(callback);
-}
-
-/**
- * Retrieves audio from URL and generates peak data
- * @param {String} url the url of the audio we'd like to fetch
- * @param {Object} options Optional object with samples {Number} (default: 70) and allchannels {boolean} (default: false) properties
- */
-exports.generatePeaks = async (url, options = {}) => {
-    if (url == undefined || url.length < 6) {
-        return 'Please provide a URL';
-    }
-    let allchannels = options.allchannels ? options.allchannels : false;
-    let samples = options.samples ? options.samples : 70;
-    let peaks = await fetch(url)
-    .then(response => response.arrayBuffer())
-    .then(arrayBuffer => decode(arrayBuffer))
-    .then(audioBuffer => normalizeData(filterData(audioBuffer, samples, allchannels)),allchannels)
-    .then(peaks => {return peaks[0]});
-    return peaks;
 }
