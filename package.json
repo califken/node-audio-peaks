@@ -1,6 +1,6 @@
 {
   "name": "node-audio-peaks",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Get audio peak data from a local audio filepath or remote audio file URL in a Node.js environment - without the browser.  Peak data is returned as an Observable.",
   "main": "index.js",
   "scripts": {

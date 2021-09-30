@@ -13,7 +13,7 @@ npm install node-audio-peaks --save
 Version 2.0.1 uses RxJS, and returns the audio peak data as an observable.
 ### **getAudioPeaks(url, samples)**
 ```
-const nodeAudioPeaks = require("./index.js");
+const nodeAudioPeaks = require("node-audio-peaks");
 
 // Generate peaks for a local audio file
 let filepath = 'sampleaudio.mp3';
