@@ -60,7 +60,7 @@ function audioPeaksFromFile(audiofile, samples) {
         map(filedata => new Blob.Blob([filedata.buffer])),
         switchMap(blob => from(blob.arrayBuffer())),
         switchMap(arrayBuffer => from(decode(arrayBuffer))),
-        map(audioBuffer => filterData(audioBuffer, samples ?? 70, false)),
+        map(audioBuffer => filterData(audioBuffer, samples ? samples : 70, false)),
         map(filteredData => normalizeData(filteredData, false)),
         map(normalizedData => normalizedData[0])
     );
@@ -79,7 +79,7 @@ function audioPeaksFromURL(audiofileurl, samples) {
         }),
         switchMap(file => from(file.arrayBuffer())),
         switchMap(arrayBuffer => from(decode(arrayBuffer))),
-        map(audioBuffer => filterData(audioBuffer, samples ?? 70, false)),
+        map(audioBuffer => filterData(audioBuffer, samples ? samples : 70, false)),
         map(filteredData => normalizeData(filteredData, false)),
         map(normalizedData => normalizedData[0])
     );
