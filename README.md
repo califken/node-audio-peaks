@@ -10,19 +10,19 @@ Use your favorite package manager / [npm](https://www.npmjs.com/package/npm) to 
 npm install node-audio-peaks --save
 ```
 ## Usage
-Version 2.0.1 uses RxJS, and returns the audio peak data as an observable.
+Version 3.0.1 Is an ES6 module, and uses RxJS to return the audio peak data as an observable.
 ### **getAudioPeaks(url, samples)**
 ```
-const nodeAudioPeaks = require("node-audio-peaks");
+import { getAudioPeaks } from "node-audio-peaks";
 
 // Generate peaks for a local audio file
 let filepath = 'sampleaudio.mp3';
-let audioPeaksFromFile$ = nodeAudioPeaks.getAudioPeaks(filepath);
+let audioPeaksFromFile$ = getAudioPeaks(filepath);
 audioPeaksFromFile$.subscribe(console.log);
 
 // Generate peaks for a remote audio file
 let audioFileURL = 'https://www.kennethcaple.com/api/mp3/richinlovemutedguitarechoing.mp3';
-let audioPeaksFromURL$ = nodeAudioPeaks.getAudioPeaks(url);
+let audioPeaksFromURL$ = getAudioPeaks(audioFileURL);
 audioPeaksFromURL$.subscribe(console.log);
 ```
 
